@@ -15,8 +15,11 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { maskIdNumber, isExpired } from '../utils/idUtils';
+import { useTheme } from '../context/ThemeContext';
 
 export default function IDCard({ entry, isAuthenticated, onEdit, onDelete, onCopy }) {
+  const { colors, isDark } = useTheme();
+
   // Whether the user has explicitly tapped "reveal" for this card
   const [revealed, setRevealed] = useState(false);
 
@@ -30,12 +33,20 @@ export default function IDCard({ entry, isAuthenticated, onEdit, onDelete, onCop
   // Photo is shown when a URI exists and the file wasn't flagged as missing
   const hasPhoto = entry.photoUri && !entry.photoMissing;
 
+  // Derived card colors based on theme
+  const cardBg = isDark ? '#1A1A2E' : '#FFFFFF';
+  const cardBorder = isDark ? '#2A2A4A' : '#E0E0E0';
+  const photoBg = isDark ? '#2A2A4A' : '#F0F0F0';
+  const dividerColor = isDark ? '#2A2A4A' : '#EEEEEE';
+  const blurOverlayColor = isDark ? 'rgba(20,20,30,0.88)' : 'rgba(240,240,240,0.88)';
+  const iconSecondary = isDark ? '#AAAAAA' : '#888888';
+
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
       {/* ── Top row: photo thumbnail + name / type ── */}
       <View style={styles.topRow}>
         {/* Photo / placeholder area */}
-        <View style={styles.photoArea}>
+        <View style={[styles.photoArea, { backgroundColor: photoBg }]}>
           {hasPhoto ? (
             <Image
               source={{ uri: entry.photoUri }}
@@ -43,33 +54,33 @@ export default function IDCard({ entry, isAuthenticated, onEdit, onDelete, onCop
               resizeMode="cover"
             />
           ) : (
-            <Ionicons name="id-card-outline" size={32} color="#555" />
+            <Ionicons name="id-card-outline" size={32} color={iconSecondary} />
           )}
         </View>
 
         {/* Name and ID type */}
         <View style={styles.nameBlock}>
-          <Text style={styles.nameText} numberOfLines={1}>
+          <Text style={[styles.nameText, { color: colors.text }]} numberOfLines={1}>
             {entry.name}
           </Text>
-          <Text style={styles.idTypeText} numberOfLines={1}>
+          <Text style={[styles.idTypeText, { color: colors.textSecondary }]} numberOfLines={1}>
             {entry.idType}
           </Text>
         </View>
       </View>
 
       {/* ── Divider ── */}
-      <View style={styles.divider} />
+      <View style={[styles.divider, { backgroundColor: dividerColor }]} />
 
       {/* ── ID Number row ── */}
       <View style={styles.idNumberRow}>
         <View style={styles.idNumberWrapper}>
-          <Text style={styles.idNumberLabel}>ID: </Text>
-          <Text style={styles.idNumberValue}>{displayIdNumber}</Text>
+          <Text style={[styles.idNumberLabel, { color: colors.textSecondary }]}>ID: </Text>
+          <Text style={[styles.idNumberValue, { color: colors.text }]}>{displayIdNumber}</Text>
 
           {/* Blur overlay when NOT authenticated */}
           {!isAuthenticated && (
-            <View style={styles.blurOverlay} />
+            <View style={[styles.blurOverlay, { backgroundColor: blurOverlayColor }]} />
           )}
         </View>
 
@@ -83,7 +94,7 @@ export default function IDCard({ entry, isAuthenticated, onEdit, onDelete, onCop
           <Ionicons
             name={revealed ? 'eye-off' : 'eye'}
             size={20}
-            color={isAuthenticated ? '#AAAAAA' : '#444444'}
+            color={isAuthenticated ? iconSecondary : '#444444'}
           />
         </TouchableOpacity>
 
@@ -93,17 +104,17 @@ export default function IDCard({ entry, isAuthenticated, onEdit, onDelete, onCop
           onPress={() => onCopy(entry.idNumber)}
           accessibilityLabel="Copy ID number"
         >
-          <Ionicons name="copy-outline" size={20} color="#AAAAAA" />
+          <Ionicons name="copy-outline" size={20} color={iconSecondary} />
         </TouchableOpacity>
       </View>
 
       {/* ── Expiry date row ── */}
       {entry.expiryDate ? (
-        <Text style={[styles.expiryText, expired && styles.expiryExpired]}>
+        <Text style={[styles.expiryText, { color: colors.textSecondary }, expired && styles.expiryExpired]}>
           Expires: {entry.expiryDate}
         </Text>
       ) : (
-        <Text style={styles.expiryText}>No expiry date</Text>
+        <Text style={[styles.expiryText, { color: colors.textSecondary }]}>No expiry date</Text>
       )}
 
       {/* ── Action buttons: edit + delete ── */}
@@ -113,7 +124,7 @@ export default function IDCard({ entry, isAuthenticated, onEdit, onDelete, onCop
           onPress={() => onEdit(entry)}
           accessibilityLabel="Edit entry"
         >
-          <Ionicons name="create-outline" size={20} color="#AAAAAA" />
+          <Ionicons name="create-outline" size={20} color={iconSecondary} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -130,12 +141,10 @@ export default function IDCard({ entry, isAuthenticated, onEdit, onDelete, onCop
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#1A1A2E',
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#2A2A4A',
   },
 
   /* Top row */
@@ -148,7 +157,6 @@ const styles = StyleSheet.create({
     width: 60,
     height: 40,
     borderRadius: 4,
-    backgroundColor: '#2A2A4A',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -163,12 +171,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   nameText: {
-    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
   },
   idTypeText: {
-    color: '#AAAAAA',
     fontSize: 12,
     marginTop: 2,
   },
@@ -176,7 +182,6 @@ const styles = StyleSheet.create({
   /* Divider */
   divider: {
     height: 1,
-    backgroundColor: '#2A2A4A',
     marginBottom: 10,
   },
 
@@ -193,25 +198,21 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   idNumberLabel: {
-    color: '#AAAAAA',
     fontSize: 13,
   },
   idNumberValue: {
-    color: '#FFFFFF',
     fontSize: 13,
     fontFamily: 'monospace',
     letterSpacing: 1,
   },
-  /* Semi-transparent grey overlay that "blurs" the ID number when unauthenticated */
+  /* Semi-transparent overlay that "blurs" the ID number when unauthenticated */
   blurOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(30, 30, 30, 0.85)',
     borderRadius: 4,
   },
 
   /* Expiry */
   expiryText: {
-    color: '#AAAAAA',
     fontSize: 12,
     marginBottom: 10,
   },

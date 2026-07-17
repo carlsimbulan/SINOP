@@ -1,41 +1,73 @@
-import React, { useRef, useEffect } from 'react';
-import { AppState } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
-import LockScreen from './screens/LockScreen';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+import DrawerContent from './components/DrawerContent';
 import DashboardScreen from './screens/DashboardScreen';
 import AddEditScreen from './screens/AddEditScreen';
+import AboutScreen from './screens/AboutScreen';
 
 const Stack = createNativeStackNavigator();
+const Drawer = createDrawerNavigator();
 
-export default function App() {
-  const navigationRef = useRef(null);
+/**
+ * Inner stack: Dashboard + AddEdit + About (all accessible from the stack,
+ * About is also reachable via the drawer button).
+ */
+function MainStack({ navigation: drawerNavigation }) {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Dashboard">
+        {(props) => (
+          <DashboardScreen
+            {...props}
+            openDrawer={() => drawerNavigation.openDrawer()}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="AddEdit" component={AddEditScreen} />
+      <Stack.Screen name="About" component={AboutScreen} />
+    </Stack.Navigator>
+  );
+}
 
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active') {
-        navigationRef.current?.navigate('Lock');
-      }
-    });
-    return () => subscription.remove();
-  }, []);
+function AppNavigator() {
+  const { isDark, colors } = useTheme();
 
   return (
-    <SafeAreaProvider>
-      <NavigationContainer ref={navigationRef}>
-        <Stack.Navigator
-          initialRouteName="Lock"
-          screenOptions={{ headerShown: false }}
-        >
-          <Stack.Screen name="Lock" component={LockScreen} />
-          <Stack.Screen name="Dashboard" component={DashboardScreen} />
-          <Stack.Screen name="AddEdit" component={AddEditScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
-      <StatusBar style="light" />
-    </SafeAreaProvider>
+    <NavigationContainer>
+      <Drawer.Navigator
+        drawerContent={(props) => <DrawerContent {...props} />}
+        screenOptions={{
+          headerShown: false,
+          drawerType: 'slide',
+          drawerStyle: {
+            width: 300,
+            backgroundColor: colors.drawerBackground,
+          },
+          overlayColor: 'rgba(0,0,0,0.55)',
+          swipeEdgeWidth: 60,
+        }}
+      >
+        <Drawer.Screen name="MainStack" component={MainStack} />
+      </Drawer.Navigator>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+    </NavigationContainer>
+  );
+}
+
+export default function App() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <AppNavigator />
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

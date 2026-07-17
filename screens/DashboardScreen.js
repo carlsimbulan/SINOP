@@ -1,5 +1,5 @@
 /**
- * DashboardScreen — lists all stored ID cards in a dark-themed wallet UI.
+ * DashboardScreen — lists all stored ID cards in a themed wallet UI.
  *
  * Responsibilities:
  *   - Loads entries from StorageService on mount and on every navigation focus event
@@ -7,6 +7,7 @@
  *   - Renders the IDCard list or empty-state message
  *   - Hosts the FAB for navigating to AddEditScreen in "add" mode
  *   - Hosts Quick Copy logic (Task 8.3): copies raw ID number via expo-clipboard
+ *   - Shows hamburger button that opens the app drawer
  *
  * Requirements: 2.1, 2.2, 2.3, 2.7, 3.1, 4.1, 4.2, 4.4, 4.5, 4.6, 4.7, 9.5
  */
@@ -18,15 +19,15 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { loadEntries, deleteEntry } from '../services/StorageService';
 import IDCard from '../components/IDCard';
+import { useTheme } from '../context/ThemeContext';
 
-export default function DashboardScreen({ navigation }) {
+export default function DashboardScreen({ navigation, openDrawer }) {
+  const { colors } = useTheme();
+
   // Full list of IDEntry objects loaded from AsyncStorage
   const [entries, setEntries] = useState([]);
 
   // True once the user has successfully passed LockScreen for this session.
-  // We start as true here because DashboardScreen is only reached after a
-  // successful auth on LockScreen — AppState re-lock is handled by App.js /
-  // LockScreen presenting itself on resume.
   const [isAuthenticated, setIsAuthenticated] = useState(true);
 
   // Toast feedback for Quick Copy
@@ -62,8 +63,6 @@ export default function DashboardScreen({ navigation }) {
   /**
    * Copy the raw (unmasked) ID number to the system clipboard.
    * Shows a toast for 3 seconds confirming success or failure.
-   *
-   * @param {string} idNumber  — the unmasked ID number from IDEntry
    */
   const handleCopy = useCallback(async (idNumber) => {
     try {
@@ -113,17 +112,30 @@ export default function DashboardScreen({ navigation }) {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>SINOP Vault</Text>
-        <Ionicons name="shield-checkmark-outline" size={24} color="#FFFFFF" />
+      <View style={[styles.header, { backgroundColor: colors.headerBackground, borderBottomColor: colors.border }]}>
+        {/* Hamburger / drawer toggle */}
+        <TouchableOpacity
+          onPress={openDrawer}
+          style={styles.headerBtn}
+          accessibilityLabel="Buksan ang menu"
+          accessibilityRole="button"
+        >
+          <Ionicons name="menu-outline" size={26} color={colors.iconColor} />
+        </TouchableOpacity>
+
+        <Text style={[styles.headerTitle, { color: colors.text }]}>SINOP Vault</Text>
+
+        {/* Right spacer to keep title centred */}
+        <View style={styles.headerBtn} />
       </View>
 
       {/* Content: empty state or card list */}
       {entries.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
+          <Ionicons name="albums-outline" size={48} color={colors.textSecondary} style={styles.emptyIcon} />
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             Wala pang ID na naka-save. I-tap ang button sa baba para magdagdag.
           </Text>
         </View>
@@ -159,7 +171,7 @@ export default function DashboardScreen({ navigation }) {
 
       {/* FAB */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: colors.accent }]}
         onPress={() => navigation.navigate('AddEdit', { mode: 'add' })}
         accessibilityLabel="Mag-sinop ng Bagong ID"
         accessibilityRole="button"
@@ -173,7 +185,6 @@ export default function DashboardScreen({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0D0D0D',
   },
 
   /* Header */
@@ -181,12 +192,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  headerBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
   },
 
@@ -197,8 +214,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 32,
   },
+  emptyIcon: {
+    marginBottom: 16,
+    opacity: 0.5,
+  },
   emptyText: {
-    color: '#AAAAAA',
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 22,
@@ -235,7 +255,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#F5A623',
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 6,

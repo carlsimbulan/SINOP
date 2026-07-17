@@ -1,39 +1,34 @@
 /**
  * IDCard — wallet-card style component for a single ID_Entry.
- *
- * Props:
- *   entry           {IDEntry}   — the stored ID entry
- *   isAuthenticated {boolean}   — whether the session is currently authenticated
- *   onEdit          {Function}  — called with (entry) when the edit button is tapped
- *   onDelete        {Function}  — called with (entry.id) when the delete button is tapped
- *   onCopy          {Function}  — called with (entry.idNumber) when the copy button is tapped
- *
- * Requirements: 2.4, 2.5, 2.6, 4.1, 4.2, 4.4, 4.5, 9.6
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Modal,
+  Dimensions,
+  StatusBar,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { maskIdNumber, isExpired } from '../utils/idUtils';
 import { useTheme } from '../context/ThemeContext';
 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
 export default function IDCard({ entry, isAuthenticated, onEdit, onDelete, onCopy }) {
   const { colors, isDark } = useTheme();
-
-  // Whether the user has explicitly tapped "reveal" for this card
   const [revealed, setRevealed] = useState(false);
+  const [photoModalVisible, setPhotoModalVisible] = useState(false);
 
-  // Expiry check — only when an expiry date is stored
   const expired = entry.expiryDate ? isExpired(entry.expiryDate) : false;
-
-  // Show unmasked ID only when authenticated AND the reveal toggle is active
   const displayIdNumber =
     isAuthenticated && revealed ? entry.idNumber : maskIdNumber(entry.idNumber);
-
-  // Photo is shown when a URI exists and the file wasn't flagged as missing
   const hasPhoto = entry.photoUri && !entry.photoMissing;
 
-  // Derived card colors based on theme
   const cardBg = isDark ? '#1A1A2E' : '#FFFFFF';
   const cardBorder = isDark ? '#2A2A4A' : '#E0E0E0';
   const photoBg = isDark ? '#2A2A4A' : '#F0F0F0';
@@ -43,22 +38,16 @@ export default function IDCard({ entry, isAuthenticated, onEdit, onDelete, onCop
 
   return (
     <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+
       {/* ── Top row: photo thumbnail + name / type ── */}
       <View style={styles.topRow}>
-        {/* Photo / placeholder area */}
         <View style={[styles.photoArea, { backgroundColor: photoBg }]}>
           {hasPhoto ? (
-            <Image
-              source={{ uri: entry.photoUri }}
-              style={styles.photo}
-              resizeMode="cover"
-            />
+            <Image source={{ uri: entry.photoUri }} style={styles.photo} resizeMode="cover" />
           ) : (
             <Ionicons name="id-card-outline" size={32} color={iconSecondary} />
           )}
         </View>
-
-        {/* Name and ID type */}
         <View style={styles.nameBlock}>
           <Text style={[styles.nameText, { color: colors.text }]} numberOfLines={1}>
             {entry.name}
@@ -77,14 +66,12 @@ export default function IDCard({ entry, isAuthenticated, onEdit, onDelete, onCop
         <View style={styles.idNumberWrapper}>
           <Text style={[styles.idNumberLabel, { color: colors.textSecondary }]}>ID: </Text>
           <Text style={[styles.idNumberValue, { color: colors.text }]}>{displayIdNumber}</Text>
-
-          {/* Blur overlay when NOT authenticated */}
           {!isAuthenticated && (
             <View style={[styles.blurOverlay, { backgroundColor: blurOverlayColor }]} />
           )}
         </View>
 
-        {/* Reveal/hide toggle — functional only when authenticated */}
+        {/* Reveal toggle */}
         <TouchableOpacity
           style={[styles.iconButton, !isAuthenticated && styles.iconButtonDisabled]}
           onPress={() => isAuthenticated && setRevealed((prev) => !prev)}
@@ -98,7 +85,7 @@ export default function IDCard({ entry, isAuthenticated, onEdit, onDelete, onCop
           />
         </TouchableOpacity>
 
-        {/* Quick Copy button — Req 4.4, 4.5 */}
+        {/* Quick Copy */}
         <TouchableOpacity
           style={styles.iconButton}
           onPress={() => onCopy(entry.idNumber)}
@@ -108,16 +95,31 @@ export default function IDCard({ entry, isAuthenticated, onEdit, onDelete, onCop
         </TouchableOpacity>
       </View>
 
-      {/* ── Expiry date row ── */}
-      {entry.expiryDate ? (
-        <Text style={[styles.expiryText, { color: colors.textSecondary }, expired && styles.expiryExpired]}>
-          Expires: {entry.expiryDate}
-        </Text>
-      ) : (
-        <Text style={[styles.expiryText, { color: colors.textSecondary }]}>No expiry date</Text>
+      {/* ── Expiry ── */}
+      <Text
+        style={[
+          styles.expiryText,
+          { color: expired ? colors.danger : colors.textSecondary },
+        ]}
+      >
+        {entry.expiryDate
+          ? `Expires: ${entry.expiryDate}${expired ? '  ⚠ Expired' : ''}`
+          : 'No expiry date'}
+      </Text>
+
+      {/* ── View Full Photo button ── */}
+      {hasPhoto && (
+        <TouchableOpacity
+          style={[styles.viewPhotoButton, { borderColor: colors.accent }]}
+          onPress={() => setPhotoModalVisible(true)}
+          accessibilityLabel="View full photo"
+        >
+          <Ionicons name="image-outline" size={16} color={colors.accent} />
+          <Text style={[styles.viewPhotoText, { color: colors.accent }]}>View Full Photo</Text>
+        </TouchableOpacity>
       )}
 
-      {/* ── Action buttons: edit + delete ── */}
+      {/* ── Actions: edit + delete ── */}
       <View style={styles.actionsRow}>
         <TouchableOpacity
           style={styles.iconButton}
@@ -126,15 +128,39 @@ export default function IDCard({ entry, isAuthenticated, onEdit, onDelete, onCop
         >
           <Ionicons name="create-outline" size={20} color={iconSecondary} />
         </TouchableOpacity>
-
         <TouchableOpacity
           style={styles.iconButton}
           onPress={() => onDelete(entry.id)}
           accessibilityLabel="Delete entry"
         >
-          <Ionicons name="trash-outline" size={20} color="#FF4444" />
+          <Ionicons name="trash-outline" size={20} color={colors.danger} />
         </TouchableOpacity>
       </View>
+
+      {/* ── Full Photo Modal ── */}
+      <Modal
+        visible={photoModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPhotoModalVisible(false)}
+      >
+        <StatusBar hidden />
+        <View style={styles.modalBackdrop}>
+          <TouchableOpacity
+            style={styles.modalClose}
+            onPress={() => setPhotoModalVisible(false)}
+            accessibilityLabel="Close photo"
+          >
+            <Ionicons name="close-circle" size={36} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Image
+            source={{ uri: entry.photoUri }}
+            style={styles.fullPhoto}
+            resizeMode="contain"
+          />
+          <Text style={styles.modalCaption}>{entry.name} — {entry.idType}</Text>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -146,8 +172,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
   },
-
-  /* Top row */
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -167,25 +191,10 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 4,
   },
-  nameBlock: {
-    flex: 1,
-  },
-  nameText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  idTypeText: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-
-  /* Divider */
-  divider: {
-    height: 1,
-    marginBottom: 10,
-  },
-
-  /* ID Number row */
+  nameBlock: { flex: 1 },
+  nameText: { fontSize: 15, fontWeight: '600' },
+  idTypeText: { fontSize: 12, marginTop: 2 },
+  divider: { height: 1, marginBottom: 10 },
   idNumberRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -197,39 +206,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
-  idNumberLabel: {
-    fontSize: 13,
-  },
-  idNumberValue: {
-    fontSize: 13,
-    fontFamily: 'monospace',
-    letterSpacing: 1,
-  },
-  /* Semi-transparent overlay that "blurs" the ID number when unauthenticated */
+  idNumberLabel: { fontSize: 13 },
+  idNumberValue: { fontSize: 13, fontFamily: 'monospace', letterSpacing: 1 },
   blurOverlay: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 4,
   },
+  expiryText: { fontSize: 12, marginBottom: 10 },
 
-  /* Expiry */
-  expiryText: {
-    fontSize: 12,
+  /* View Full Photo button */
+  viewPhotoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     marginBottom: 10,
   },
-  expiryExpired: {
-    color: '#FF4444',
-  },
+  viewPhotoText: { fontSize: 13, fontWeight: '600' },
 
   /* Actions */
-  actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+  actionsRow: { flexDirection: 'row', justifyContent: 'flex-end' },
+  iconButton: { padding: 6, marginLeft: 4 },
+  iconButtonDisabled: { opacity: 0.4 },
+
+  /* Full photo modal */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  iconButton: {
-    padding: 6,
-    marginLeft: 4,
+  modalClose: {
+    position: 'absolute',
+    top: 48,
+    right: 20,
+    zIndex: 10,
   },
-  iconButtonDisabled: {
-    opacity: 0.4,
+  fullPhoto: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.75,
+  },
+  modalCaption: {
+    color: '#AAAAAA',
+    fontSize: 13,
+    marginTop: 16,
+    textAlign: 'center',
+    paddingHorizontal: 24,
   },
 });

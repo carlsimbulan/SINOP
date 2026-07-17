@@ -67,10 +67,10 @@ export default function DashboardScreen({ navigation, openDrawer }) {
   const handleCopy = useCallback(async (idNumber) => {
     try {
       await Clipboard.setStringAsync(idNumber);
-      setToastMessage('Nakopya!');
+      setToastMessage('Copied!');
       setToastIsError(false);
     } catch {
-      setToastMessage('Hindi nakopya. Subukan ulit.');
+      setToastMessage('Could not copy. Please try again.');
       setToastIsError(true);
     }
     setTimeout(() => setToastMessage(null), 3000);
@@ -80,19 +80,19 @@ export default function DashboardScreen({ navigation, openDrawer }) {
 
   const handleDelete = useCallback((id) => {
     Alert.alert(
-      'I-delete?',
-      'Sigurado ka bang gusto mong burahin ito?',
+      'Delete ID?',
+      'Are you sure you want to delete this entry?',
       [
-        { text: 'Kanselahin', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'I-Delete',
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             try {
               await deleteEntry(id);
               setEntries((prev) => prev.filter((e) => e.id !== id));
             } catch {
-              Alert.alert('Error', 'Hindi na-delete. Subukan ulit.');
+              Alert.alert('Error', 'Could not delete. Please try again.');
             }
           },
         },
@@ -136,7 +136,7 @@ export default function DashboardScreen({ navigation, openDrawer }) {
         <View style={styles.emptyContainer}>
           <Ionicons name="albums-outline" size={48} color={colors.textSecondary} style={styles.emptyIcon} />
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-            Wala pang ID na naka-save. I-tap ang button sa baba para magdagdag.
+            No IDs saved yet. Tap the button below to add one.
           </Text>
         </View>
       ) : (

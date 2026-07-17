@@ -5,20 +5,55 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0D0D0D"
+    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "com.sinop.idvault",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0D0D0D",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Kailangan ng SINOP ang access sa iyong camera upang kumuha ng larawan ng iyong ID. (SINOP needs access to your camera to capture a photo of your ID.)",
+          "photosPermission": "Kailangan ng SINOP ang access sa iyong photo library upang makapili ng larawan ng iyong ID. (SINOP needs access to your photo library to select a photo of your ID.)"
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Kailangan ng SINOP ang Face ID upang ma-verify ang iyong pagkakakilanlan bago buksan ang iyong secure na vault ng ID. (SINOP needs Face ID to verify your identity before opening your secure ID vault.)"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "30f1fd7c-0d91-4060-bb37-df679168604c"
+      }
     }
   }
 }

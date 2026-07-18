@@ -2,7 +2,7 @@
  * AboutScreen — full page describing the SINOP Vault app.
  */
 
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -27,15 +27,6 @@ export default function AboutScreen({ navigation }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-
-        {/* App icon only */}
-        <View style={styles.heroSection}>
-          <Image
-            source={require('../assets/icon.png')}
-            style={styles.appIcon}
-            resizeMode="contain"
-          />
-        </View>
 
         {/* Description */}
         <View style={[styles.card, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
@@ -133,25 +124,6 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
     gap: 16,
-  },
-  heroSection: {
-    alignItems: 'center',
-    paddingVertical: 24,
-  },
-  appIcon: {
-    width: 100,
-    height: 100,
-    borderRadius: 24,
-    marginBottom: 16,
-  },
-  appName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    letterSpacing: 2,
-  },
-  version: {
-    fontSize: 13,
-    marginTop: 4,
   },
   card: {
     borderRadius: 14,

@@ -29,6 +29,7 @@ import { File, Directory, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
 
 const STORAGE_KEY = 'SINOP_VAULT_ENTRIES';
+const USERNAME_KEY = 'SINOP_USERNAME';
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -104,6 +105,35 @@ function _validateEntry(entry) {
     );
     validationErr.name = 'ValidationError';
     throw validationErr;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public API — Username
+// ---------------------------------------------------------------------------
+
+/**
+ * Load the stored display name. Returns null if not yet set.
+ * @returns {Promise<string|null>}
+ */
+export async function loadUsername() {
+  try {
+    return await AsyncStorage.getItem(USERNAME_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Persist the display name. Trims whitespace before saving.
+ * @param {string} name
+ * @returns {Promise<void>}
+ */
+export async function saveUsername(name) {
+  try {
+    await AsyncStorage.setItem(USERNAME_KEY, name.trim());
+  } catch {
+    // best-effort — failure is non-critical
   }
 }
 

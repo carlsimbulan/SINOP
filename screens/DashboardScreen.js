@@ -8,12 +8,21 @@
  *   - Hosts the FAB for navigating to AddEditScreen in "add" mode
  *   - Hosts Quick Copy logic (Task 8.3): copies raw ID number via expo-clipboard
  *   - Shows hamburger button that opens the app drawer
+ *   - Search bar to filter by ID Type
  *
  * Requirements: 2.1, 2.2, 2.3, 2.7, 3.1, 4.1, 4.2, 4.4, 4.5, 4.6, 4.7, 9.5
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  TextInput,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
@@ -26,6 +35,9 @@ export default function DashboardScreen({ navigation, openDrawer }) {
 
   // Full list of IDEntry objects loaded from AsyncStorage
   const [entries, setEntries] = useState([]);
+
+  // Search query for filtering by ID Type
+  const [searchQuery, setSearchQuery] = useState('');
 
   // True once the user has successfully passed LockScreen for this session.
   const [isAuthenticated, setIsAuthenticated] = useState(true);
@@ -58,12 +70,19 @@ export default function DashboardScreen({ navigation, openDrawer }) {
     return unsubscribe;
   }, [navigation, fetchEntries]);
 
+  // ── Filtered entries ──────────────────────────────────────────────────────
+
+  const filteredEntries = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return entries;
+    return entries.filter((e) =>
+      e.idType.toLowerCase().includes(q) ||
+      e.name.toLowerCase().includes(q)
+    );
+  }, [entries, searchQuery]);
+
   // ── Task 8.3 — Quick Copy ─────────────────────────────────────────────────
 
-  /**
-   * Copy the raw (unmasked) ID number to the system clipboard.
-   * Shows a toast for 3 seconds confirming success or failure.
-   */
   const handleCopy = useCallback(async (idNumber) => {
     try {
       await Clipboard.setStringAsync(idNumber);
@@ -111,11 +130,14 @@ export default function DashboardScreen({ navigation, openDrawer }) {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
+  // Determine empty state reason
+  const isListEmpty = entries.length === 0;
+  const isSearchEmpty = !isListEmpty && filteredEntries.length === 0;
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.headerBackground, borderBottomColor: colors.border }]}>
-        {/* Hamburger / drawer toggle */}
         <TouchableOpacity
           onPress={openDrawer}
           style={styles.headerBtn}
@@ -131,17 +153,64 @@ export default function DashboardScreen({ navigation, openDrawer }) {
         <View style={styles.headerBtn} />
       </View>
 
-      {/* Content: empty state or card list */}
-      {entries.length === 0 ? (
+      {/* Search bar — only show when there are entries */}
+      {!isListEmpty && (
+        <View style={[styles.searchContainer, { backgroundColor: colors.headerBackground, borderBottomColor: colors.border }]}>
+          <View style={[styles.searchBox, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
+            <Ionicons name="search-outline" size={18} color={colors.textSecondary} style={styles.searchIcon} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.text }]}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search by ID type or name..."
+              placeholderTextColor={colors.textSecondary}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+              clearButtonMode="while-editing"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                accessibilityLabel="Clear search"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Total count — below the search separator, outside the search container */}
+      {!isListEmpty && (
+        <View style={[styles.totalContainer, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>
+            {searchQuery.trim().length > 0
+              ? `Showing ${filteredEntries.length} of ${entries.length} IDs stored`
+              : `${entries.length} ${entries.length === 1 ? 'ID' : 'IDs'} stored`}
+          </Text>
+        </View>
+      )}
+
+      {/* Content */}
+      {isListEmpty ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="albums-outline" size={48} color={colors.textSecondary} style={styles.emptyIcon} />
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             No IDs saved yet. Tap the button below to add one.
           </Text>
         </View>
+      ) : isSearchEmpty ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="search-outline" size={48} color={colors.textSecondary} style={styles.emptyIcon} />
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+            No IDs match "{searchQuery}".
+          </Text>
+        </View>
       ) : (
         <FlatList
-          data={entries}
+          data={filteredEntries}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <IDCard
@@ -153,6 +222,7 @@ export default function DashboardScreen({ navigation, openDrawer }) {
             />
           )}
           contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
         />
       )}
 
@@ -205,6 +275,40 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+  },
+
+  /* Search bar */
+  searchContainer: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    gap: 8,
+  },
+  searchIcon: {
+    marginRight: 2,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    paddingVertical: 0,
+  },
+
+  /* Total count strip */
+  totalContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  totalLabel: {
+    fontSize: 12,
   },
 
   /* Empty state */

@@ -1,7 +1,3 @@
-/**
- * AddEditScreen — create or edit a single ID entry.
- */
-
 import React, { useState } from 'react';
 import {
   View,
